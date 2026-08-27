@@ -1,0 +1,105 @@
+name: yetpanda
+
+x-backend: &backend
+  build:
+    context: ./backend
+    target: dev
+  env_file: ./backend/.env.docker
+  volumes:
+    - ./backend:/app
+    - media:/app/media
+    - ytdlp_cache:/app/.ytdlp-cache
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: yetpanda
+      POSTGRES_PASSWORD: yetpanda
+      POSTGRES_DB: yetpanda
+    ports:
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yetpanda"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "no", "--save", ""]
+    ports:
+      - "127.0.0.1:6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    <<: *backend
+    command: python manage.py runserver 0.0.0.0:8000
+
+  # Probes are interactive and must never queue behind a 40-minute download,
+  # so they get their own queue and worker.
+  worker-probe:
+    <<: *backend
+    command: >
+      celery -A config worker -Q probe,expand -n probe@%h
+      --pool=prefork -c 4 --prefetch-multiplier=4 --max-tasks-per-child=200
+
+  worker-download:
+    <<: *backend
+    command: >
+      celery -A config worker -Q download -n download@%h
+      --pool=prefork -c 4 --prefetch-multiplier=1 --max-tasks-per-child=25
+      --soft-time-limit=5400 --time-limit=5700
+
+  worker-maint:
+    <<: *backend
+    command: celery -A config worker -Q maint -n maint@%h --pool=prefork -c 2
+
+  beat:
+    <<: *backend
+    command: celery -A config beat --loglevel=info
+
+  web:
+    build:
+      context: ./website
+      target: dev
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: https://api.yetpanda.dev
+      NEXT_PUBLIC_SITE_URL: https://yetpanda.dev
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ./website:/app
+      - /app/node_modules
+      - /app/.next
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+      - media:/srv/media:ro
+    depends_on:
+      - api
+      - web
+
+volumes:
+  pgdata:
+  media:
+  ytdlp_cache:
+  caddy_data:
+  caddy_config:
