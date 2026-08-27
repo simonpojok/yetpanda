@@ -1,69 +1,77 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+
+import { ErrorAlert } from "@/components/feedback/error-alert";
+import { ModalHost } from "@/components/layout/modal-host";
+import { SiteFooter } from "@/components/layout/site-footer";
+import { SiteHeader } from "@/components/layout/site-header";
+import { ComingSoonGrid } from "@/components/platform/coming-soon-grid";
+import { UrlForm } from "@/components/url/url-form";
+import { useDownloadSession } from "@/hooks/use-download-session";
+import { useJobPolling } from "@/hooks/use-job-polling";
+import { useProbe } from "@/hooks/use-probe";
+import { ApiRequestError } from "@/lib/api/http-client";
+import { isTerminal } from "@/lib/domain/job";
+import { useModal } from "@/providers/modal-provider";
 
 export default function Home() {
+  const { open } = useModal();
+  const { jobIds } = useDownloadSession();
+  const { data: jobs = [] } = useJobPolling(jobIds);
+  const [error, setError] = useState<string | null>(null);
+
+  const probe = useProbe((result) => {
+    setError(null);
+    open(
+      result.kind === "playlist"
+        ? { name: "playlist", probe: result }
+        : { name: "format", probe: result },
+    );
+  });
+
+  const submit = (url: string) => {
+    setError(null);
+    probe.mutate(url, {
+      onError: (cause) => {
+        setError(
+          cause instanceof ApiRequestError
+            ? cause.message
+            : "Could not read that link. Check it and try again.",
+        );
+      },
+    });
+  };
+
+  const activeCount = jobs.filter((job) => !isTerminal(job.status)).length;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <>
+      <SiteHeader activeCount={activeCount} />
+
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center gap-10 px-4 py-14 sm:py-20">
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <h1 className="font-display text-3xl leading-[1.1] font-700 tracking-tight sm:text-5xl">
+              Paste a link.
+              <br />
+              <span className="text-muted-foreground">Get the file.</span>
+            </h1>
+            <p className="text-muted-foreground max-w-md text-sm">
+              Video or audio, at the quality you pick. Whole playlists too.
+            </p>
+          </div>
+
+          <UrlForm onSubmit={submit} isLoading={probe.isPending} />
+
+          {error && <ErrorAlert message={error} />}
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+
+        <ComingSoonGrid />
       </main>
-    </div>
+
+      <SiteFooter />
+      <ModalHost />
+    </>
   );
 }
