@@ -29,7 +29,7 @@ class JobListView(APIView):
         jobs = list(
             DownloadJob.objects.filter(
                 id__in=ids, session_id=request.anon_session_id
-            ).order_by("created_at")
+            ).order_by("-created_at")
         )
 
         progress = ProgressReader().for_jobs(jobs)

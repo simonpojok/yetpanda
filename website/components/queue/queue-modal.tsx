@@ -1,7 +1,5 @@
 "use client";
 
-import { Inbox } from "lucide-react";
-
 import {
   Dialog,
   DialogContent,
@@ -16,8 +14,7 @@ import { useJobPolling } from "@/hooks/use-job-polling";
 import { isTerminal } from "@/lib/domain/job";
 import { useModal } from "@/providers/modal-provider";
 
-import { BatchRow } from "./batch-row";
-import { JobRow } from "./job-row";
+import { QueueList } from "./queue-list";
 
 export function QueueModal() {
   const { close } = useModal();
@@ -62,40 +59,25 @@ export function QueueModal() {
             scrolls once max-height clamps it. */}
           <div className="min-h-40 flex-auto overflow-y-auto">
             <TabsContent value="active" className="mt-3 pb-4">
-              {batches.active.map((batch) => (
-                <BatchRow key={batch.id} batchId={batch.id} show="active" />
-              ))}
-              {active.map((job) => (
-                <JobRow key={job.id} job={job} />
-              ))}
-              {active.length === 0 && batches.active.length === 0 && (
-                <EmptyState message="Nothing downloading. Paste a link to start." />
-              )}
+              <QueueList
+                batches={batches.active}
+                jobs={active}
+                show="active"
+                emptyMessage="Nothing downloading. Paste a link to start."
+              />
             </TabsContent>
 
             <TabsContent value="finished" className="mt-3 pb-4">
-              {batches.finished.map((batch) => (
-                <BatchRow key={batch.id} batchId={batch.id} show="finished" />
-              ))}
-              {finished.map((job) => (
-                <JobRow key={job.id} job={job} />
-              ))}
-              {finished.length === 0 && batches.finished.length === 0 && (
-                <EmptyState message="Finished downloads will appear here." />
-              )}
+              <QueueList
+                batches={batches.finished}
+                jobs={finished}
+                show="finished"
+                emptyMessage="Finished downloads will appear here."
+              />
             </TabsContent>
           </div>
         </Tabs>
       </DialogContent>
     </Dialog>
-  );
-}
-
-function EmptyState({ message }: { message: string }) {
-  return (
-    <div className="text-muted-foreground flex flex-col items-center gap-2 px-4 py-14 text-center">
-      <Inbox className="size-5" />
-      <p className="text-sm">{message}</p>
-    </div>
   );
 }
