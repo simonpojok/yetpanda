@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useBatchList } from "@/hooks/use-batch-list";
 import { useDownloadSession } from "@/hooks/use-download-session";
@@ -33,7 +32,7 @@ export function QueueModal() {
 
   return (
     <Dialog open onOpenChange={close}>
-      <DialogContent className="max-h-[86vh] w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-xl">
+      <DialogContent className="max-h-[min(44rem,calc(100dvh-4rem))] w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-xl">
         <DialogHeader className="p-4 pb-3 text-left">
           <DialogTitle className="text-base">Downloads</DialogTitle>
           <DialogDescription className="text-xs">
@@ -41,8 +40,8 @@ export function QueueModal() {
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="active">
-          <div className="px-4">
+        <Tabs defaultValue="active" className="min-h-0 flex-auto">
+          <div className="shrink-0 px-4">
             <TabsList className="w-full">
               <TabsTrigger value="active" className="flex-1">
                 Active {activeCount > 0 && `(${activeCount})`}
@@ -53,8 +52,16 @@ export function QueueModal() {
             </TabsList>
           </div>
 
-          <ScrollArea className="h-[54vh]">
-            <TabsContent value="active" className="mt-3">
+          {/* A plain overflow container, not Radix's ScrollArea. ScrollArea's
+            viewport is `height: 100%`, which will not resolve against a parent
+            sized by flex *shrinking* - it sized to content and overflowed.
+            Insetting it fixed scrolling but put the content out of flow, so the
+            dialog no longer knew how tall it wanted to be and collapsed to its
+            floor. A flex item with `min-h-0` + `overflow-y-auto` satisfies both:
+            its content is the flex basis, so the dialog grows to fit, and it
+            scrolls once max-height clamps it. */}
+          <div className="min-h-40 flex-auto overflow-y-auto">
+            <TabsContent value="active" className="mt-3 pb-4">
               {batches.active.map((batch) => (
                 <BatchRow key={batch.id} batchId={batch.id} show="active" />
               ))}
@@ -66,7 +73,7 @@ export function QueueModal() {
               )}
             </TabsContent>
 
-            <TabsContent value="finished" className="mt-3">
+            <TabsContent value="finished" className="mt-3 pb-4">
               {batches.finished.map((batch) => (
                 <BatchRow key={batch.id} batchId={batch.id} show="finished" />
               ))}
@@ -77,7 +84,7 @@ export function QueueModal() {
                 <EmptyState message="Finished downloads will appear here." />
               )}
             </TabsContent>
-          </ScrollArea>
+          </div>
         </Tabs>
       </DialogContent>
     </Dialog>

@@ -13,7 +13,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -86,7 +85,7 @@ export function PlaylistModal({ probe }: { probe: PlaylistProbe }) {
 
   return (
     <Dialog open onOpenChange={close}>
-      <DialogContent className="max-h-[88vh] w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-2xl">
+      <DialogContent className="max-h-[min(48rem,calc(100dvh-4rem))] w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-2xl">
         <DialogHeader className="p-4 pb-3 text-left">
           <DialogTitle className="line-clamp-1 text-base">{probe.title}</DialogTitle>
           <DialogDescription className="tabular text-xs">
@@ -97,7 +96,7 @@ export function PlaylistModal({ probe }: { probe: PlaylistProbe }) {
 
         <Separator />
 
-        <div className="flex flex-col gap-2 p-4 sm:flex-row">
+        <div className="flex shrink-0 flex-col gap-2 p-4 sm:flex-row">
           <Select value={kind} onValueChange={(value) => setKind(value as "video" | "audio")}>
             <SelectTrigger className="sm:w-32">
               <SelectValue placeholder="Choose a format" />
@@ -145,7 +144,7 @@ export function PlaylistModal({ probe }: { probe: PlaylistProbe }) {
           />
         </div>
 
-        <div className="border-border/80 flex items-center gap-2 border-y px-4 py-2">
+        <div className="border-border/80 flex shrink-0 items-center gap-2 border-y px-4 py-2">
           <Checkbox
             checked={allSelected}
             onCheckedChange={() =>
@@ -160,7 +159,15 @@ export function PlaylistModal({ probe }: { probe: PlaylistProbe }) {
           </span>
         </div>
 
-        <ScrollArea className="h-[38vh]">
+        {/* A plain overflow container, not Radix's ScrollArea. ScrollArea's
+            viewport is `height: 100%`, which will not resolve against a parent
+            sized by flex *shrinking* - it sized to content and overflowed.
+            Insetting it fixed scrolling but put the content out of flow, so the
+            dialog no longer knew how tall it wanted to be and collapsed to its
+            floor. A flex item with `min-h-0` + `overflow-y-auto` satisfies both:
+            its content is the flex basis, so the dialog grows to fit, and it
+            scrolls once max-height clamps it. */}
+        <div className="min-h-40 flex-auto overflow-y-auto">
           {visible.map((entry) => (
             <PlaylistItemRow
               key={entry.index}
@@ -169,11 +176,9 @@ export function PlaylistModal({ probe }: { probe: PlaylistProbe }) {
               onToggle={() => toggle(entry.index)}
             />
           ))}
-        </ScrollArea>
+        </div>
 
-        <Separator />
-
-        <DialogFooter className="p-4">
+        <DialogFooter>
           <Button variant="ghost" onClick={close}>
             Cancel
           </Button>

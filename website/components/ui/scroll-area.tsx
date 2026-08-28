@@ -13,7 +13,10 @@ function ScrollArea({
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
-      className={cn("relative", className)}
+      // min-h-0 so it can shrink when used as a flex item: a column flex
+      // item's automatic minimum is content-based and would otherwise stop
+      // the scroll region from ever activating. Callers can set a floor.
+      className={cn("relative min-h-0", className)}
       {...props}
     >
       {/*

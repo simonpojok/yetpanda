@@ -61,10 +61,22 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot="dialog-content"
         className={cn(
-          // A grid item defaults to min-width:auto, so it refuses to shrink below
-          // its content and long titles push the whole dialog wider than its
-          // own max-width. minmax(0,1fr) is what lets `truncate` take effect.
-          "fixed top-1/2 left-1/2 z-50 grid grid-cols-[minmax(0,1fr)] w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          // A column flex container resolves its items' automatic minimum size
+          // on the *main* (vertical) axis, so `min-width: auto` computes to 0
+          // and cross-axis stretch pins children to the dialog's own width.
+          // Long titles therefore cannot push the box past its max-width, and
+          // `truncate`/`line-clamp` engage. (This replaced a grid whose
+          // `minmax(0,1fr)` bought the same thing, but which could not size a
+          // scroll region nested inside Tabs.)
+          //
+          // dvh, not vh: on mobile browsers vh is the *large* viewport, so a
+          // vh-capped dialog can sit under the URL bar.
+          "fixed top-1/2 left-1/2 z-50 flex w-full max-h-[calc(100dvh-2rem)] max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none sm:max-w-sm data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          // Reserve room for the close button so long titles don't run under
+          // it. This has to live here rather than on DialogHeader: callers
+          // pass `p-4`, and tailwind-merge lets `p-*` override a base `pr-*`,
+          // which would silently strip it in exactly the modals that need it.
+          showCloseButton && "[&_[data-slot=dialog-header]]:pr-11",
           className
         )}
         {...props}
@@ -92,7 +104,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2", className)}
+      className={cn("flex shrink-0 flex-col gap-2", className)}
       {...props}
     />
   )
@@ -110,7 +122,13 @@ function DialogFooter({
     <div
       data-slot="dialog-footer"
       className={cn(
-        "-mx-4 -mb-4 flex flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
+        // No negative margins. They only made sense against DialogContent's
+        // default `p-4`, and a footer cannot see its parent's padding to know
+        // whether to cancel it. The contract is instead: a dialog with a
+        // footer uses `p-0` and pads its own sections. With `-mx-4 -mb-4` the
+        // footer measured 544px inside a 512px dialog, so `overflow-hidden`
+        // clipped its border, corners and part of the buttons.
+        "flex shrink-0 flex-col-reverse gap-2 rounded-b-xl border-t bg-muted/50 p-4 sm:flex-row sm:justify-end",
         className
       )}
       {...props}

@@ -11,7 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useCreateJob } from "@/hooks/use-create-job";
@@ -98,7 +97,7 @@ export function FormatModal({ probe }: { probe: VideoProbe }) {
 
   return (
     <Dialog open onOpenChange={close}>
-      <DialogContent className="max-h-[88vh] w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent className="max-h-[min(44rem,calc(100dvh-4rem))] w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-xl">
         <DialogHeader className="p-4 pb-3 text-left">
           <DialogTitle className="line-clamp-2 text-base leading-snug">
             {probe.title}
@@ -110,8 +109,18 @@ export function FormatModal({ probe }: { probe: VideoProbe }) {
 
         <Separator />
 
-        <Tabs value={tab} onValueChange={(value) => setTab(value as "video" | "audio")}>
-          <div className="px-4 pt-3">
+        {/*
+          flex-auto, not flex-1: flex-1 has a 0 basis, so the auto-height
+          dialog would size itself as if this region were empty and the list
+          would collapse. flex-auto keeps the content as the basis, so the
+          dialog grows to fit and only gives ground once max-height clamps it.
+        */}
+        <Tabs
+          value={tab}
+          onValueChange={(value) => setTab(value as "video" | "audio")}
+          className="min-h-0 flex-auto"
+        >
+          <div className="shrink-0 px-4 pt-3">
             <TabsList className="w-full">
               <TabsTrigger value="video" className="flex-1">
                 Video
@@ -122,7 +131,15 @@ export function FormatModal({ probe }: { probe: VideoProbe }) {
             </TabsList>
           </div>
 
-          <ScrollArea className="max-h-[46vh]">
+          {/* A plain overflow container, not Radix's ScrollArea. ScrollArea's
+            viewport is `height: 100%`, which will not resolve against a parent
+            sized by flex *shrinking* - it sized to content and overflowed.
+            Insetting it fixed scrolling but put the content out of flow, so the
+            dialog no longer knew how tall it wanted to be and collapsed to its
+            floor. A flex item with `min-h-0` + `overflow-y-auto` satisfies both:
+            its content is the flex basis, so the dialog grows to fit, and it
+            scrolls once max-height clamps it. */}
+          <div className="min-h-32 flex-auto overflow-y-auto">
             <TabsContent value="video" className="mt-0 space-y-4 p-4">
               <div className="space-y-1.5">
                 {probe.formats.video.map((option) => (
@@ -166,12 +183,12 @@ export function FormatModal({ probe }: { probe: VideoProbe }) {
                 MP3 bitrates add file size rather than quality.
               </p>
             </TabsContent>
-          </ScrollArea>
+          </div>
         </Tabs>
 
-        <Separator />
-
-        <DialogFooter className="p-4">
+        {/* No Separator here: DialogFooter draws its own border-top. It only
+            looked missing before because overflow-hidden was clipping it. */}
+        <DialogFooter>
           <Button variant="ghost" onClick={close}>
             Cancel
           </Button>

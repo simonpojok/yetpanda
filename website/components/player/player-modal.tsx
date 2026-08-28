@@ -28,7 +28,7 @@ export function PlayerModal({ job }: { job: Job }) {
 
   return (
     <Dialog open onOpenChange={close}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-2xl">
+      <DialogContent className="max-h-[calc(100dvh-4rem)] gap-0 overflow-hidden p-0 sm:max-w-2xl">
         <DialogHeader className="p-4 pb-3 text-left">
           <DialogTitle className="line-clamp-1 text-base">{job.title}</DialogTitle>
           <DialogDescription className="tabular text-xs">
@@ -36,7 +36,7 @@ export function PlayerModal({ job }: { job: Job }) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="bg-black">
+        <div className="shrink-0 bg-black">
           {isAudio ? (
             <div className="p-6">
               {/* No crossOrigin attribute: a plain media load needs no CORS,
@@ -55,7 +55,7 @@ export function PlayerModal({ job }: { job: Job }) {
           )}
         </div>
 
-        <DialogFooter className="p-4">
+        <DialogFooter>
           <Button variant="ghost" onClick={close}>
             Close
           </Button>
