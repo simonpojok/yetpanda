@@ -86,7 +86,7 @@ export function PlaylistModal({ probe }: { probe: PlaylistProbe }) {
 
   return (
     <Dialog open onOpenChange={close}>
-      <DialogContent className="max-h-[88vh] gap-0 overflow-hidden p-0 sm:max-w-2xl">
+      <DialogContent className="max-h-[88vh] w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-2xl">
         <DialogHeader className="p-4 pb-3 text-left">
           <DialogTitle className="line-clamp-1 text-base">{probe.title}</DialogTitle>
           <DialogDescription className="tabular text-xs">

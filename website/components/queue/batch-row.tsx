@@ -14,13 +14,21 @@ import { formatFileSize } from "@/lib/format/format-file-size";
 import { BatchChildren } from "./batch-children";
 import { JobProgressRule } from "./job-progress-rule";
 
-export function BatchRow({ batchId }: { batchId: string }) {
+export function BatchRow({
+  batchId,
+  show,
+}: {
+  batchId: string;
+  /** Which tab is asking. A finished playlist belongs under Finished. */
+  show: "active" | "finished";
+}) {
   const [expanded, setExpanded] = useState(false);
   const { data: batch } = useBatchPolling(batchId);
   const retry = useRetryBatch(batchId);
   const cancel = useCancelBatch(batchId);
 
   if (!batch) return null;
+  if (isTerminalBatch(batch.status) !== (show === "finished")) return null;
 
   const { rollup, archive } = batch;
   const tone =

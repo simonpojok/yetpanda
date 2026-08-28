@@ -25,13 +25,40 @@ import { AudioBitrateOption } from "./audio-bitrate-option";
 import { SubtitleSection } from "./subtitle-section";
 import { VideoFormatRow } from "./video-format-row";
 
+const PREFERRED_HEIGHT = 1080;
+const PREFERRED_BITRATE = 192;
+
+/**
+ * Never default to the largest option. The list is sorted highest-first, so
+ * taking [0] means one stray click starts a multi-gigabyte 4K download - and
+ * on this video that top entry is VP9, which Safari and most TVs refuse to
+ * play. Prefer the best H.264 option at or below 1080p.
+ */
+function defaultVideoId(probe: VideoProbe): string {
+  const options = probe.formats.video;
+  const compatible = options.filter(
+    (option) => option.height <= PREFERRED_HEIGHT && !option.requires_po_token,
+  );
+  const h264 = compatible.find((option) => option.video_codec === "H.264");
+  return (h264 ?? compatible[0] ?? options[0])?.id ?? "";
+}
+
+/** 192kbps is transparent for YouTube's ~128kbps source; 320 only adds bytes. */
+function defaultAudioId(probe: VideoProbe): string {
+  const options = probe.formats.audio;
+  const preferred = options.find(
+    (option) => option.bitrate_kbps === PREFERRED_BITRATE && !option.is_passthrough,
+  );
+  return (preferred ?? options[0])?.id ?? "";
+}
+
 export function FormatModal({ probe }: { probe: VideoProbe }) {
   const { close, open } = useModal();
   const { addJob } = useDownloadSession();
 
   const [tab, setTab] = useState<"video" | "audio">("video");
-  const [videoId, setVideoId] = useState(probe.formats.video[0]?.id ?? "");
-  const [audioId, setAudioId] = useState(probe.formats.audio[0]?.id ?? "");
+  const [videoId, setVideoId] = useState(() => defaultVideoId(probe));
+  const [audioId, setAudioId] = useState(() => defaultAudioId(probe));
   const [subtitleMode, setSubtitleMode] = useState<SubtitleMode>("none");
   const [subtitleLangs, setSubtitleLangs] = useState<string[]>([]);
 
@@ -71,7 +98,7 @@ export function FormatModal({ probe }: { probe: VideoProbe }) {
 
   return (
     <Dialog open onOpenChange={close}>
-      <DialogContent className="max-h-[88vh] gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent className="max-h-[88vh] w-[calc(100%-2rem)] gap-0 overflow-hidden p-0 sm:max-w-lg">
         <DialogHeader className="p-4 pb-3 text-left">
           <DialogTitle className="line-clamp-2 text-base leading-snug">
             {probe.title}
@@ -132,6 +159,12 @@ export function FormatModal({ probe }: { probe: VideoProbe }) {
                   onSelect={() => setAudioId(option.id)}
                 />
               ))}
+              {/* The size column makes this obvious to anyone who looks, so
+                  saying it plainly is better than letting people pay for it. */}
+              <p className="text-muted-foreground pt-2 text-xs">
+                YouTube&rsquo;s audio is around 128 kbps to begin with, so higher
+                MP3 bitrates add file size rather than quality.
+              </p>
             </TabsContent>
           </ScrollArea>
         </Tabs>

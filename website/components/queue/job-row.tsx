@@ -51,7 +51,8 @@ export function JobRow({ job }: { job: Job }) {
 function statusLine(job: Job): string {
   if (job.status === "queued") return "Waiting to start";
   if (job.status === "cancelled") return "Cancelled";
-  if (job.status === "succeeded") return job.result?.filename ?? "Ready";
+  // The filename is essentially the title again, so show the channel.
+  if (job.status === "succeeded") return job.channel || "Ready to save";
   return job.progress?.stage_label ?? "Working";
 }
 

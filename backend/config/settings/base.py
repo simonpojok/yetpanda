@@ -18,15 +18,18 @@ API_DOMAIN = env("API_DOMAIN", default="api.yetpanda.dev")
 # Extra hostnames the same deployment answers to. *.localhost resolves to
 # loopback in every browser without an /etc/hosts entry, which makes local
 # testing work out of the box while staying genuinely cross-origin.
-EXTRA_SITE_HOSTS = env.list("EXTRA_SITE_HOSTS", default=[])
 EXTRA_API_HOSTS = env.list("EXTRA_API_HOSTS", default=[])
+
+# Full origins including scheme. Deriving these from a bare hostname means
+# guessing http vs https, and guessing wrong fails as an opaque CORS error.
+EXTRA_SITE_ORIGINS = env.list("EXTRA_SITE_ORIGINS", default=[])
 
 ALLOWED_HOSTS = [API_DOMAIN, *EXTRA_API_HOSTS, "127.0.0.1", "localhost"]
 CSRF_TRUSTED_ORIGINS = [
     f"https://{SITE_DOMAIN}",
     f"https://www.{SITE_DOMAIN}",
     f"https://{API_DOMAIN}",
-    *[f"https://{host}" for host in EXTRA_SITE_HOSTS + EXTRA_API_HOSTS],
+    *EXTRA_SITE_ORIGINS,
 ]
 
 INSTALLED_APPS = [
@@ -107,7 +110,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CORS_ALLOWED_ORIGINS = [
     f"https://{SITE_DOMAIN}",
     f"https://www.{SITE_DOMAIN}",
-    *[f"https://{host}" for host in EXTRA_SITE_HOSTS],
+    *EXTRA_SITE_ORIGINS,
 ]
 CORS_ALLOW_CREDENTIALS = True
 CORS_EXPOSE_HEADERS = [
