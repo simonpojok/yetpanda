@@ -27,3 +27,7 @@ caddy_config/
 .idea/
 .DS_Store
 caddy/root.crt
+
+# Celery beat runtime state
+celerybeat-schedule
+celerybeat.pid
