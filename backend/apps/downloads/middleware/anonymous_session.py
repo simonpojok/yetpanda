@@ -5,6 +5,9 @@ UUID would let anyone claim another session's jobs; signing means only the
 server can mint one, which makes ``filter(session=...)`` a real authorisation
 boundary. ``httpOnly`` keeps it out of reach of page scripts.
 
+The cookie is host-only: it is sent to the API and never read by the page, so
+scoping it to the whole domain would widen it for no benefit.
+
 The salted IP hash is the backstop, because cookies are clearable.
 """
 
@@ -34,7 +37,6 @@ class AnonymousSessionMiddleware:
                 settings.ANON_SESSION_COOKIE,
                 signing.dumps({"sid": session_id}, salt=SALT),
                 max_age=settings.ANON_SESSION_MAX_AGE,
-                domain=settings.SESSION_COOKIE_DOMAIN,
                 secure=True,
                 httponly=True,
                 samesite="None",

@@ -4,6 +4,8 @@ from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ..throttles import ProbeRateLimited
+
 from apps.extraction.domain.media_kind import SourceKind
 from apps.extraction.services.playlist_expander import PlaylistExpander
 from apps.extraction.services.probe_service import ProbeService
@@ -14,6 +16,8 @@ from ..serializers.probe_request_serializer import ProbeRequestSerializer
 
 
 class ProbeView(APIView):
+    permission_classes = [ProbeRateLimited]
+
     def post(self, request):
         payload = ProbeRequestSerializer(data=request.data)
         payload.is_valid(raise_exception=True)

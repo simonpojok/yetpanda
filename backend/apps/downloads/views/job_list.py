@@ -8,6 +8,8 @@ implementations fall over on a 50-item playlist.
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ..throttles import PollRateLimited
+
 from ..models import DownloadJob
 from ..serializers.job_serializer import JobSerializer
 from ..services.progress_reader import ProgressReader
@@ -16,6 +18,8 @@ MAX_IDS = 200
 
 
 class JobListView(APIView):
+    permission_classes = [PollRateLimited]
+
     def get(self, request):
         raw_ids = (request.query_params.get("ids") or "").strip()
         if not raw_ids:

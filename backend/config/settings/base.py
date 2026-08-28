@@ -15,8 +15,19 @@ DEBUG = False
 SITE_DOMAIN = env("SITE_DOMAIN", default="yetpanda.dev")
 API_DOMAIN = env("API_DOMAIN", default="api.yetpanda.dev")
 
-ALLOWED_HOSTS = [API_DOMAIN, "127.0.0.1", "localhost"]
-CSRF_TRUSTED_ORIGINS = [f"https://{SITE_DOMAIN}", f"https://www.{SITE_DOMAIN}", f"https://{API_DOMAIN}"]
+# Extra hostnames the same deployment answers to. *.localhost resolves to
+# loopback in every browser without an /etc/hosts entry, which makes local
+# testing work out of the box while staying genuinely cross-origin.
+EXTRA_SITE_HOSTS = env.list("EXTRA_SITE_HOSTS", default=[])
+EXTRA_API_HOSTS = env.list("EXTRA_API_HOSTS", default=[])
+
+ALLOWED_HOSTS = [API_DOMAIN, *EXTRA_API_HOSTS, "127.0.0.1", "localhost"]
+CSRF_TRUSTED_ORIGINS = [
+    f"https://{SITE_DOMAIN}",
+    f"https://www.{SITE_DOMAIN}",
+    f"https://{API_DOMAIN}",
+    *[f"https://{host}" for host in EXTRA_SITE_HOSTS + EXTRA_API_HOSTS],
+]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -93,7 +104,11 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ---------------------------------------------------------------- cross-origin
-CORS_ALLOWED_ORIGINS = [f"https://{SITE_DOMAIN}", f"https://www.{SITE_DOMAIN}"]
+CORS_ALLOWED_ORIGINS = [
+    f"https://{SITE_DOMAIN}",
+    f"https://www.{SITE_DOMAIN}",
+    *[f"https://{host}" for host in EXTRA_SITE_HOSTS],
+]
 CORS_ALLOW_CREDENTIALS = True
 CORS_EXPOSE_HEADERS = [
     "Content-Range",
@@ -103,8 +118,11 @@ CORS_EXPOSE_HEADERS = [
     "ETag",
 ]
 
-SESSION_COOKIE_DOMAIN = f".{SITE_DOMAIN}"
-CSRF_COOKIE_DOMAIN = f".{SITE_DOMAIN}"
+# Deliberately host-only. The anonymous cookie is read by the API and never
+# by page scripts, so widening it to the whole domain would only broaden the
+# blast radius - and it would break any hostname that is not SITE_DOMAIN.
+SESSION_COOKIE_DOMAIN = None
+CSRF_COOKIE_DOMAIN = None
 SESSION_COOKIE_SAMESITE = "None"
 CSRF_COOKIE_SAMESITE = "None"
 SESSION_COOKIE_SECURE = True

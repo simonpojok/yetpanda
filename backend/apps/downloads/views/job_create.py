@@ -3,6 +3,8 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ..throttles import JobCreateRateLimited
+
 from apps.extraction.domain.error_code import ErrorCode
 from apps.extraction.domain.exceptions import PolicyError
 from apps.extraction.domain.media_kind import MediaKind, SourceKind
@@ -16,6 +18,8 @@ from ..services.session_resolver import SessionResolver
 
 
 class JobCreateView(APIView):
+    permission_classes = [JobCreateRateLimited]
+
     def post(self, request):
         payload = JobCreateSerializer(data=request.data)
         payload.is_valid(raise_exception=True)

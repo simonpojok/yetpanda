@@ -26,3 +26,4 @@ caddy_config/
 # IDE / OS
 .idea/
 .DS_Store
+caddy/root.crt

@@ -102,6 +102,13 @@ def run_download(self, job_id: str) -> str:
         _mark_terminal(job, JobStatus.CANCELLED, ErrorCode.CANCELLED, "Download cancelled.")
         return "cancelled"
     except ExtractionError as exc:
+        # Defence in depth: whatever route a cancellation arrives by, it must
+        # not be recorded as a failure.
+        if exc.code is ErrorCode.CANCELLED:
+            _mark_terminal(
+                job, JobStatus.CANCELLED, ErrorCode.CANCELLED, "Download cancelled."
+            )
+            return "cancelled"
         _mark_terminal(job, JobStatus.FAILED, exc.code, exc.message, exc.detail)
         return "failed"
     except Exception as exc:  # noqa: BLE001 - last resort, never leak upward

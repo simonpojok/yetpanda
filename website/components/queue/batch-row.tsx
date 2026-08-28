@@ -1,12 +1,14 @@
 "use client";
 
-import { ChevronDown, ChevronRight, FileArchive } from "lucide-react";
+import { ChevronDown, ChevronRight, FileArchive, RotateCcw, X } from "lucide-react";
 import { useState } from "react";
 
 import { StatItem } from "@/components/readout/stat-item";
 import { Button } from "@/components/ui/button";
 import { useBatchPolling } from "@/hooks/use-batch-polling";
+import { useCancelBatch, useRetryBatch } from "@/hooks/use-batch-actions";
 import { fileUrl } from "@/lib/api/http-client";
+import { TERMINAL_BATCH_STATUSES } from "@/lib/domain/batch";
 import { formatFileSize } from "@/lib/format/format-file-size";
 
 import { BatchChildren } from "./batch-children";
@@ -15,6 +17,8 @@ import { JobProgressRule } from "./job-progress-rule";
 export function BatchRow({ batchId }: { batchId: string }) {
   const [expanded, setExpanded] = useState(false);
   const { data: batch } = useBatchPolling(batchId);
+  const retry = useRetryBatch(batchId);
+  const cancel = useCancelBatch(batchId);
 
   if (!batch) return null;
 
@@ -65,14 +69,38 @@ export function BatchRow({ batchId }: { batchId: string }) {
           </div>
         </div>
 
-        {archive.available && archive.url && (
-          <Button asChild variant="outline" size="sm" className="shrink-0 gap-2">
-            <a href={fileUrl(archive.url)} download>
-              <FileArchive className="size-4" />
-              ZIP
-            </a>
-          </Button>
-        )}
+        <div className="flex shrink-0 items-center gap-1">
+          {rollup.failed > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Retry failed items"
+              disabled={retry.isPending}
+              onClick={() => retry.mutate()}
+            >
+              <RotateCcw className="size-4" />
+            </Button>
+          )}
+          {!isTerminalBatch(batch.status) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Cancel playlist"
+              disabled={cancel.isPending}
+              onClick={() => cancel.mutate()}
+            >
+              <X className="size-4" />
+            </Button>
+          )}
+          {archive.available && archive.url && (
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <a href={fileUrl(archive.url)} download>
+                <FileArchive className="size-4" />
+                ZIP
+              </a>
+            </Button>
+          )}
+        </div>
       </div>
 
       <JobProgressRule percent={rollup.percent} tone={tone} />
@@ -80,6 +108,10 @@ export function BatchRow({ batchId }: { batchId: string }) {
       {expanded && <BatchChildren batch={batch} />}
     </div>
   );
+}
+
+function isTerminalBatch(status: string): boolean {
+  return TERMINAL_BATCH_STATUSES.includes(status as never);
 }
 
 function describe(status: string): string {

@@ -9,6 +9,7 @@ provided by Celery's prefork pool recycling children.
 import logging
 
 from yt_dlp import YoutubeDL
+from yt_dlp.utils import DownloadCancelled
 
 from ..domain.exceptions import ExtractionError
 from .error_translator import ErrorTranslator
@@ -47,6 +48,12 @@ class YtDlpClient:
                 # sanitize_info strips unserialisable objects and internals,
                 # which is required before anything reaches JSONB.
                 return ydl.sanitize_info(info)
+        except DownloadCancelled:
+            # A cancellation is not an extraction failure. Translating it here
+            # would land the job in `failed` carrying error_code=cancelled,
+            # which reads to the user as a broken download rather than one
+            # they stopped on purpose.
+            raise
         except Exception as exc:  # noqa: BLE001 - translated immediately
             code = self._translator.translate(exc)
             raise ExtractionError(code, str(exc)) from exc

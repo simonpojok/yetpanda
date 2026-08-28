@@ -1,7 +1,17 @@
 import type { ApiError } from "@/lib/domain/error-code";
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? "https://api.yetpanda.dev";
+/**
+ * The API lives on an `api.` subdomain of whatever host serves the page, so
+ * the same build works on yetpanda.dev, yetpanda.com and yetpanda.localhost
+ * without a rebuild. An explicit env var still wins when the two are split.
+ */
+function resolveBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_API_BASE_URL;
+  if (configured) return configured;
+  if (typeof window === "undefined") return "";
+  const host = window.location.hostname.replace(/^www\./, "");
+  return `${window.location.protocol}//api.${host}`;
+}
 
 export class ApiRequestError extends Error {
   constructor(readonly apiError: ApiError, readonly status: number) {
@@ -24,7 +34,7 @@ export async function request<T>(
   path: string,
   { method = "GET", body, signal }: RequestOptions = {},
 ): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, {
+  const response = await fetch(`${resolveBaseUrl()}${path}`, {
     method,
     credentials: "include",
     headers: body ? { "Content-Type": "application/json" } : undefined,
@@ -62,5 +72,5 @@ async function toApiError(response: Response): Promise<ApiError> {
 }
 
 export function fileUrl(path: string): string {
-  return `${BASE_URL}${path}`;
+  return `${resolveBaseUrl()}${path}`;
 }

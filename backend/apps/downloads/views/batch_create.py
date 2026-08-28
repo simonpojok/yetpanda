@@ -3,6 +3,8 @@
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ..throttles import BatchCreateRateLimited
+
 from apps.extraction.domain.error_code import ErrorCode
 from apps.extraction.domain.exceptions import PolicyError
 from apps.extraction.domain.media_kind import SourceKind
@@ -16,6 +18,8 @@ from ..services.session_resolver import SessionResolver
 
 
 class BatchCreateView(APIView):
+    permission_classes = [BatchCreateRateLimited]
+
     def post(self, request):
         payload = BatchCreateSerializer(data=request.data)
         payload.is_valid(raise_exception=True)

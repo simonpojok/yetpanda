@@ -75,7 +75,6 @@ services:
       context: ./website
       target: dev
     environment:
-      NEXT_PUBLIC_API_BASE_URL: https://api.yetpanda.dev
       NEXT_PUBLIC_SITE_URL: https://yetpanda.dev
       WATCHPACK_POLLING: "true"
     volumes:
