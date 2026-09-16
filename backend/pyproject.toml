@@ -1,0 +1,33 @@
+[project]
+name = "yetpanda-backend"
+version = "0.1.0"
+description = "YetPanda media downloader API"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=5.2,<6.0",
+    "djangorestframework>=3.16",
+    "django-cors-headers>=4.7",
+    "django-environ>=0.12",
+    "psycopg[binary,pool]>=3.2",
+    "celery[redis]>=5.5",
+    "redis>=5.2",
+    "yt-dlp[default]",
+    "zipstream-ng>=1.8",
+    "psutil>=6",
+    "gunicorn>=23",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-django>=4.9",
+    "ruff>=0.8",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.dev"
+python_files = ["test_*.py"]

@@ -1,0 +1,102 @@
+{
+	# Issue certs from Caddy's own CA. `.dev` is HSTS-preloaded, so browsers
+	# force HTTPS and offer no click-through for an untrusted cert - local TLS
+	# is mandatory, not optional.
+	local_certs
+	admin :2019
+}
+
+# *.localhost resolves to loopback in every browser without touching
+# /etc/hosts (RFC 6761). It is also a trustworthy origin, so plain HTTP
+# is fine there - Secure cookies still set - which avoids having to trust
+# a local CA just to click around. The .dev hostnames stay HTTPS-only
+# because .dev is HSTS-preloaded and offers no other option.
+http://yetpanda.localhost, http://www.yetpanda.localhost {
+	encode gzip zstd
+	reverse_proxy web:3000
+}
+
+yetpanda.dev, www.yetpanda.dev, yetpanda.localhost {
+	tls internal
+	encode gzip zstd
+	reverse_proxy web:3000
+}
+
+api.yetpanda.dev, api.yetpanda.localhost {
+	tls internal
+	encode gzip zstd
+
+	# Large archives are generated in Python and must not be buffered.
+	handle /v1/batches/*/archive.zip {
+		reverse_proxy api:8000 {
+			flush_interval -1
+			transport http {
+				response_header_timeout 1h
+			}
+		}
+	}
+
+	handle {
+		reverse_proxy api:8000 {
+			# Caddy's equivalent of nginx X-Accel-Redirect: Django authorises
+			# and returns an empty body naming the path; Caddy serves the bytes
+			# with file_server, which handles Range/206 natively. Multi-GB
+			# files never occupy a gunicorn worker.
+			@accel header X-Accel-Redirect *
+			handle_response @accel {
+				rewrite * {rp.header.X-Accel-Redirect}
+				uri strip_prefix /_protected
+				root * /srv/media/done
+				# file_server does not inherit the upstream's headers, so the
+				# ones that carry meaning have to be re-stated here. Without
+				# this, ?dl=1 downloads land with no filename.
+				header Content-Disposition {rp.header.Content-Disposition}
+				header Content-Type {rp.header.Content-Type}
+				header Accept-Ranges bytes
+				header Cross-Origin-Resource-Policy cross-origin
+				header X-Content-Type-Options nosniff
+				file_server
+			}
+		}
+	}
+}
+
+
+http://api.yetpanda.localhost {
+	tls internal
+	encode gzip zstd
+
+	# Large archives are generated in Python and must not be buffered.
+	handle /v1/batches/*/archive.zip {
+		reverse_proxy api:8000 {
+			flush_interval -1
+			transport http {
+				response_header_timeout 1h
+			}
+		}
+	}
+
+	handle {
+		reverse_proxy api:8000 {
+			# Caddy's equivalent of nginx X-Accel-Redirect: Django authorises
+			# and returns an empty body naming the path; Caddy serves the bytes
+			# with file_server, which handles Range/206 natively. Multi-GB
+			# files never occupy a gunicorn worker.
+			@accel header X-Accel-Redirect *
+			handle_response @accel {
+				rewrite * {rp.header.X-Accel-Redirect}
+				uri strip_prefix /_protected
+				root * /srv/media/done
+				# file_server does not inherit the upstream's headers, so the
+				# ones that carry meaning have to be re-stated here. Without
+				# this, ?dl=1 downloads land with no filename.
+				header Content-Disposition {rp.header.Content-Disposition}
+				header Content-Type {rp.header.Content-Type}
+				header Accept-Ranges bytes
+				header Cross-Origin-Resource-Policy cross-origin
+				header X-Content-Type-Options nosniff
+				file_server
+			}
+		}
+	}
+}

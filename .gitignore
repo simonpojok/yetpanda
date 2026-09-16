@@ -1,0 +1,33 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Node
+node_modules/
+.next/
+next-env.d.ts
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Media / runtime artifacts
+media/
+backend/media/
+*.sqlite3
+
+# Caddy
+caddy_data/
+caddy_config/
+
+# IDE / OS
+.idea/
+.DS_Store
+caddy/root.crt
+
+# Celery beat runtime state
+celerybeat-schedule
+celerybeat.pid
